@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>OSM Hackfest - Assignment</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <style>
+      #map {
+        height: 1000px;
+      }
+    </style>
+  </head>
+  <body>
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <div id="map"></div>
+
+    <script>
+      var map = L.map("map").setView([26.6717, 87.668], 13);
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution:
+          'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+        maxZoom: 18,
+      }).addTo(map);
+
+      var featureGroup = L.layerGroup().addTo(map);
+
+      var schoolIcon = L.icon({
+        iconUrl: "https://cdn.snishant.com.np/r/school.png",
+        shadowUrl:
+          "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41],
+      });
+
+      var osmFeaturesUrl = "https://overpass-api.de/api/interpreter";
+      var osmFeaturesQuery = `
+    [out:json][timeout:25];
+    area(id:3607405325)->.searchArea;
+        (
+        node["amenity"="school"](area.searchArea);
+        );
+        out body;
+        >;
+        out skel qt;
+    `;
+
+      fetch(osmFeaturesUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: "data=" + encodeURIComponent(osmFeaturesQuery),
+      })
+        .then(function (response) {
+          return response.json();
+        })
+        .then(function (data) {
+          data.elements.forEach(function (feature) {
+            var marker = L.marker([feature.lat, feature.lon], {
+              icon: schoolIcon,
+            });
+
+            marker.on("click", function () {
+              var popupContent =
+                "<strong>" +
+                feature.tags.name +
+                "</strong><br>" +
+                "Type: " +
+                feature.tags.amenity;
+              marker.bindPopup(popupContent).openPopup();
+            });
+
+            featureGroup.addLayer(marker);
+          });
+        })
+        .catch(function (error) {
+          console.log("Error:", error);
+        });
+    </script>
+  </body>
+</html>
